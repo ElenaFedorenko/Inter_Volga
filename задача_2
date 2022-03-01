@@ -1,0 +1,109 @@
+#Загрузка файла csv в бд
+# функция на PHP
+function csv_to_sql(
+    $table_name, //имя таблицы в которую будут записываться строки
+    $file_name //имя файла с CSV, в папке uploads
+    )
+{
+ 
+//данные для подключения к БД.
+    $databasehost = "localhost"; 
+    $databasename = "db_name";
+    $databasetable = $table_name;
+    $databaseusername ="user";
+    $databasepassword = "pass";
+    $fieldseparator = ";"; //разделитель. У "нормального" csv - это запятая, 
+
+у MS EXCEL - ";"
+    $lineseparator = "\n"; //разделитель строк - переход на следующую строку
+    $csvfile = $file_name; //имя файла 
+//количество пропускаемых строк "сверху"
+    $string_trash=1;
+//если нужно добавить 1 столбец, например ID, являющиейся AUTO_INCREMENT. 
+
+Если нет необходимости, ставим 0.
+    $addauto = 1;
+ 
+    //проверяем, есть ли файл CSV на сервере
+    if(!file_exists($csvfile)) 
+    {
+        $flag='Файл не найден!'; //файл не найден
+        return $flag;
+        exit;
+    }
+    //открываем файл для чтения
+    $file = fopen($csvfile,"r");
+    //если неудалось открыть файл
+    if(!$file) 
+    {
+        $flag='Неудалось открыть файл!'; //неудалось открыть файл
+        return $flag;
+        exit;
+    }
+    //определяем размер файла
+    $size = filesize($csvfile);
+    //проверяем не пустой ли файл
+    if(!$size) 
+    {
+        $flag='Файл пуст или неисправен!'; //файл пуст или неисправен
+        return $flag;
+        exit;
+    }
+    //загружаем данные из файла в переменную
+    $csvcontent = fread($file,$size);
+    //закрываем файл
+    fclose($file);
+    //открываем подключение в БД
+    $con = @mysql_connect($databasehost,$databaseusername,$databasepassword) 
+
+or die(mysql_error());
+    @mysql_select_db($databasename) or die(mysql_error());
+    //извечная проблема - ставим на всякий случай кодировку БД UTF-8
+    $rff=mysql_query("SET NAMES utf8");
+    
+    $lines = 0;//счетчик количества записанных строк
+    $linearray = array();
+    //перебирем  построчно все что записано в $csvcontent
+foreach(split($lineseparator,$csvcontent) as $line) {
+ 
+    if($string_trash<1) //если не пропускаем никаких строк в начале
+        {
+            //меняем кодировку на utf-8. Может и не понадобится, было 
+
+оптимизировано для MS EXCEL
+            $line = iconv('CP1251', 'UTF-8//TRANSLIT',$line); 
+            $line = trim($line," \t");
+            $line = str_replace("\r","",$line);
+            //разделяем "ячейки"  в массив, обрамляем их кавычками
+            $linearray = explode($fieldseparator,$line);
+            $linemysql = implode("','",$linearray);
+            //если надо пропустить первый столбец
+            if($addauto)
+                $query = "insert into $databasetable values
+
+('','$linemysql');";
+            else
+                $query = "insert into $databasetable values('$linemysql');";
+            //если удалось добавить запись, прибавлем +1 к счетчику 
+            if(@mysql_query($query))
+                {
+                    $lines++;
+                }
+        }
+    else //если надо пропустить строку, вычитаем из количества пропускаемых 
+
+строк 1 и продолжаем "перебирать" дальше
+        {
+            $string_trash=$string_trash-1;
+        }
+}
+    //закрываем соединение с БД
+    @mysql_close($con);
+ 
+    
+    $flag='Было добавлено: '.$lines.' записей';
+    return $flag;
+}
+
+# прочитав CSV-файл, данные из файла запишутся в базу данных mySQL, html-заголовки отобразятся на сайте в соответствии с содержимым файла
+# 
