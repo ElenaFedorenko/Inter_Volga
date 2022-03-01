@@ -1,0 +1,40 @@
+Table "athletes" {
+  "id" int(3) [pk, not null]
+  "familia" varchar(30) [not null]
+  "name" varchar(30) [not null]
+  "father_name" varchar(30) [not null]
+  "kind_of_sport" varchar(30) [not null]
+}
+
+Table "competitions" {
+  "id" int(3) [pk, not null, increment]
+  "sorevnovaniya_name" varchar(30) [not null]
+  "kind_of_sport" varchar(30) [not null]
+}
+
+Table "results" {
+  "id" int(3) [pk, not null]
+  "athletes_id" int(5) [not null]
+  "competitions_id" int(5) [not null]
+  "kind_of_sport" varchar(30) [not null]
+  "count_ball" int(3) [not null]
+}
+
+Table "winners" {
+  "id" int(11) [pk, not null, increment]
+  "kind_of_sport" varchar(30) [not null]
+  "competitions_id" int(5) [not null]
+  "results_id" int(3) [not null]
+  "athletes_id" int(5) [not null]
+}
+
+
+Ref: "athletes"."id" < "results"."athletes_id"
+
+Ref: "competitions"."id" < "results"."competitions_id"
+
+Ref: "results"."athletes_id" < "winners"."athletes_id"
+
+Ref: "results"."id" < "winners"."results_id"
+
+Ref: "results"."competitions_id" < "winners"."competitions_id"
